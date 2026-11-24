@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CCASS Word Quest: Pixel Guardian</title>
+  <style>
+    /* Global reset and touch callout prevention for iPad */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0e132b 0%, #050510 100%);
+      color: #ffffff;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 8px 12px;
+    }
+
+    /* Responsive 4:3 game viewport sized to leave room for iPad arcade controls */
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 780px;
+      aspect-ratio: 4 / 3;
+      max-height: 64dvh;
+      box-shadow: 0 0 35px rgba(56, 239, 125, 0.35), 0 0 15px rgba(0, 210, 255, 0.3);
+      border: 4px solid #38ef7d;
+      border-radius: 14px;
+      background: #060613;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    /* Retro CRT scanline overlay */
+    .crt-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      z-index: 10;
+    }
+
+    /* iPad-friendly ergonomic arcade controls bar */
+    .controls-bar {
+      width: 100%;
+      max-width: 780px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      touch-action: none;
+    }
+
+    /* Left side action cluster (Sound, Restart, Fire) */
+    .action-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      touch-action: none;
+    }
+
+    .utility-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Right side 4-way directional pad (Forward, Backward, Left, Right) */
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 64px);
+      grid-template-rows: repeat(2, 46px);
+      gap: 6px;
+      touch-action: none;
+    }
+
+    .dpad-up {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .dpad-left {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .dpad-down {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .dpad-right {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    .btn-arcade {
+      background: linear-gradient(180deg, #1e2a4a 0%, #10172a 100%);
+      color: #e0f7ff;
+      border: 2px solid #00d2ff;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 0 #007799, 0 0 10px rgba(0, 210, 255, 0.25);
+      transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.12s ease;
+      touch-action: none;
+    }
+
+    .btn-arcade:active,
+    .btn-arcade.active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #007799;
+      background: linear-gradient(180deg, #2d4273 0%, #182544 100%);
+    }
+
+    .btn-fire {
+      border-color: #38ef7d;
+      color: #d8ffe8;
+      box-shadow: 0 5px 0 #1c8f49, 0 0 14px rgba(56, 239, 125, 0.4);
+      width: 164px;
+      height: 54px;
+      font-size: 17px;
+      letter-spacing: 1px;
+    }
+
+    .btn-fire:active,
+    .btn-fire.active {
+      box-shadow: 0 1px 0 #1c8f49;
+    }
+
+    .btn-utility {
+      padding: 7px 12px;
+      font-size: 12px;
+      border-color: #a55eea;
+      box-shadow: 0 3px 0 #5f27cd;
+    }
+
+    .btn-utility:active {
+      box-shadow: 0 1px 0 #5f27cd;
+    }
+
+    .instructions {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #88ccff;
+      text-align: center;
+      letter-spacing: 0.4px;
+    }
+
+    @media (max-width: 520px) {
+      .dpad-grid {
+        grid-template-columns: repeat(3, 52px);
+        grid-template-rows: repeat(2, 42px);
+        gap: 5px;
+      }
+      .btn-arcade {
+        font-size: 11px;
+      }
+      .btn-fire {
+        width: 132px;
+        height: 48px;
+        font-size: 15px;
+      }
+      .instructions {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Game Canvas -->
+  <div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="crt-overlay"></div>
+  </div>
+
+  <!-- iPad Multi-Touch Arcade Controls (Actions on Left + 4-Way Movement on Right) -->
+  <div class="controls-bar">
+    <div class="action-cluster">
+      <div class="utility-row">
+        <button type="button" class="btn-arcade btn-utility" id="btnMute">🔊 SOUND: ON</button>
+        <button type="button" class="btn-arcade btn-utility" id="btnRestart">↻ RESTART</button>
+      </div>
+      <button type="button" class="btn-arcade btn-fire" id="btnFire" aria-label="Fire Pulse">⚡ FIRE</button>
+    </div>
+
+    <div class="dpad-grid" role="group" aria-label="Directional Controls">
+      <button type="button" class="btn-arcade dpad-up" id="btnForward" aria-label="Move Forward">▲ FWD</button>
+      <button type="button" class="btn-arcade dpad-left" id="btnLeft" aria-label="Move Left">◀ LEFT</button>
+      <button type="button" class="btn-arcade dpad-down" id="btnBackward" aria-label="Move Backward">▼ BWD</button>
+      <button type="button" class="btn-arcade dpad-right" id="btnRight" aria-label="Move Right">RIGHT ▶</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    [iPad / Touch] Left: Sound, Restart &amp; FIRE | Right: Move (FWD / BWD / LEFT / RIGHT) | [Keyboard] Arrows / WASD + Space
+  </div>
+
+<script>
+window.onload = function () {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // --- 8-Bit Chiptune Synthesizer (Web Audio API) ---
+  let audioCtx = null;
+  let isMuted = false;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  }
+
+  function playTone(freq, type, duration, delay = 0, volume = 0.14) {
+    if (isMuted || !audioCtx) return;
+    setTimeout(() => {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // Ignore browser autoplay restriction exceptions
+      }
+    }, delay);
+  }
+
+  const Sound = {
+    catchCorrect: (currentCombo) => {
+      const pitchBoost = Math.min(currentCombo * 25, 200);
+      playTone(523.25 + pitchBoost, 'triangle', 0.08, 0);
+      playTone(659.25 + pitchBoost, 'triangle', 0.08, 55);
+      playTone(783.99 + pitchBoost, 'square', 0.12, 110);
+    },
+    catchWrong: () => {
+      playTone(185, 'sawtooth', 0.15, 0, 0.16);
+      playTone(125, 'sawtooth', 0.25, 95, 0.16);
+    },
+    shoot: () => {
+      playTone(920, 'square', 0.05, 0, 0.09);
+    },
+    wordComplete: () => {
+      playTone(523.25, 'square', 0.1, 0);
+      playTone(659.25, 'square', 0.1, 90);
+      playTone(783.99, 'square', 0.1, 180);
+      playTone(1046.5, 'square', 0.28, 270);
+    },
+    gameWin: () => {
+      const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+      notes.forEach((n, idx) => {
+        playTone(n, 'square', idx === notes.length - 1 ? 0.35 : 0.11, idx * 110);
+      });
+    },
+    gameOver: () => {
+      playTone(400, 'sawtooth', 0.2, 0);
+      playTone(300, 'sawtooth', 0.2, 150);
+      playTone(190, 'sawtooth', 0.4, 300);
+    }
+  };
+
+  // --- 5 CCASS Core Values Word Stages ---
+  const STAGES = [
+    { word: 'CARE', desc: 'CARING FOR ALL', color: '#ff5e7e' },
+    { word: 'COMMITMENT', desc: 'SHARED COMMITMENT', color: '#ff9f1a' },
+    { word: 'APPRECIATION', desc: 'APPRECIATING EACH OTHER', color: '#a55eea' },
+    { word: 'SUPPORT', desc: 'MUTUAL SUPPORT', color: '#00d2ff' },
+    { word: 'SUCCESS', desc: 'STRIVING FOR SUCCESS', color: '#ffd32a' }
+  ];
+
+  // --- Game State Enum ---
+  const STATE = {
+    START: 0,
+    PLAYING: 1,
+    WORD_CLEAR: 2,
+    GAME_OVER: 3,
+    GAME_WIN: 4
+  };
+
+  let gameState = STATE.START;
+  let score = 0;
+  let combo = 0;
+  let maxCombo = 0;
+  let timeLeft = 90;
+  let currentStageIndex = 0;
+  let currentWordProgress = 0;
+  let lastTime = 0;
+  let stageClearGuardTimer = 0; // Brief buffer to prevent accidental skip on final tap
+  let screenShake = 0;
+  let shootCooldown = 0;
+  let nonTargetStreak = 0;
+
+  // --- Player Starfighter Entity ---
+  const player = {
+    x: 400,
+    y: 525,
+    width: 56,
+    height: 44,
+    speed: 440,
+    minY: 130,
+    maxY: 560
+  };
+
+  let letters = [];
+  let bullets = [];
+  let particles = [];
+  let floatingTexts = [];
+  let stars = [];
+
+  // Initialize scrolling starfield background
+  for (let i = 0; i < 75; i++) {
+    stars.push({
+      x: Math.random() * 800,
+      y: Math.random() * 600,
+      size: Math.random() < 0.7 ? 1.5 : 2.5,
+      speed: 25 + Math.random() * 75
+    });
+  }
+
+  // --- Keyboard & Multi-Touch Input Controls ---
+  const keys = {};
+  const touchControls = {
+    left: false,
+    right: false,
+    forward: false,
+    backward: false
+  };
+
+  window.addEventListener('keydown', (e) => {
+    initAudio();
+    keys[e.code] = true;
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      handleAction();
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+  });
+
+  // Helper to bind pointer hold events for directional buttons on iPad
+  function bindHoldButton(element, controlKey) {
+    const activate = (e) => {
+      e.preventDefault();
+      initAudio();
+      touchControls[controlKey] = true;
+      element.classList.add('active');
+    };
+    const deactivate = (e) => {
+      if (e) e.preventDefault();
+      touchControls[controlKey] = false;
+      element.classList.remove('active');
+    };
+
+    element.addEventListener('pointerdown', activate);
+    element.addEventListener('pointerup', deactivate);
+    element.addEventListener('pointercancel', deactivate);
+    element.addEventListener('pointerleave', deactivate);
+  }
+
+  bindHoldButton(document.getElementById('btnLeft'), 'left');
+  bindHoldButton(document.getElementById('btnRight'), 'right');
+  bindHoldButton(document.getElementById('btnForward'), 'forward');
+  bindHoldButton(document.getElementById('btnBackward'), 'backward');
+
+  // Fire / Action button on left side
+  const btnFire = document.getElementById('btnFire');
+  btnFire.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    initAudio();
+    btnFire.classList.add('active');
+    handleAction();
+  });
+  const releaseFireBtn = () => btnFire.classList.remove('active');
+  btnFire.addEventListener('pointerup', releaseFireBtn);
+  btnFire.addEventListener('pointercancel', releaseFireBtn);
+  btnFire.addEventListener('pointerleave', releaseFireBtn);
+
+  // Sound Mute Toggle
+  const btnMute = document.getElementById('btnMute');
+  btnMute.addEventListener('click', () => {
+    initAudio();
+    isMuted = !isMuted;
+    btnMute.textContent = isMuted ? '🔇 SOUND: OFF' : '🔊 SOUND: ON';
+  });
+
+  // Restart Button
+  const btnRestart = document.getElementById('btnRestart');
+  btnRestart.addEventListener('click', () => {
+    initAudio();
+    restartGame();
+  });
+
+  // Direct canvas touch/click (for Start screen, Next Stage button, or 2D dragging)
+  let isCanvasDragging = false;
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    initAudio();
+    const pos = getCanvasCoords(e);
+
+    if (gameState === STATE.START || gameState === STATE.GAME_OVER || gameState === STATE.GAME_WIN) {
+      restartGame();
+      return;
+    }
+
+    if (gameState === STATE.WORD_CLEAR) {
+      if (stageClearGuardTimer <= 0) {
+        // Trigger Next Stage when tapping the "PRESS TO THE NEXT STAGE" button (or modal card)
+        advanceToNextStage();
+      }
+      return;
+    }
+
+    if (gameState === STATE.PLAYING) {
+      isCanvasDragging = true;
+      movePlayerTo(pos.x, pos.y);
+      handleAction();
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (isCanvasDragging && gameState === STATE.PLAYING) {
+      e.preventDefault();
+      const pos = getCanvasCoords(e);
+      movePlayerTo(pos.x, pos.y);
+    }
+  });
+
+  const endCanvasDrag = () => {
+    isCanvasDragging = false;
+  };
+  window.addEventListener('pointerup', endCanvasDrag);
+  window.addEventListener('pointercancel', endCanvasDrag);
+
+  function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  function movePlayerTo(x, y) {
+    player.x = Math.max(36, Math.min(800 - 36, x));
+    player.y = Math.max(player.minY, Math.min(player.maxY, y));
+  }
+
+  function handleAction() {
+    if (gameState === STATE.START || gameState === STATE.GAME_OVER || gameState === STATE.GAME_WIN) {
+      restartGame();
+    } else if (gameState === STATE.WORD_CLEAR && stageClearGuardTimer <= 0) {
+      advanceToNextStage();
+    } else if (gameState === STATE.PLAYING && shootCooldown <= 0) {
+      fireBullet();
+    }
+  }
+
+  function advanceToNextStage() {
+    Sound.shoot();
+    currentStageIndex++;
+    currentWordProgress = 0;
+    nonTargetStreak = 0;
+    letters = [];
+    bullets = [];
+    gameState = STATE.PLAYING;
+  }
+
+  function fireBullet() {
+    shootCooldown = 0.14;
+    Sound.shoot();
+    bullets.push({
+      x: player.x,
+      y: player.y - 26,
+      radius: 4.5,
+      speed: 650
+    });
+  }
+
+  function restartGame() {
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    timeLeft = 90;
+    currentStageIndex = 0;
+    currentWordProgress = 0;
+    nonTargetStreak = 0;
+    letters = [];
+    bullets = [];
+    particles = [];
+    floatingTexts = [];
+    player.x = 400;
+    player.y = 525;
+    gameState = STATE.PLAYING;
+  }
+
+  // --- Particle & Floating Score Effects ---
+  function spawnExplosion(x, y, color, count = 16) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 45 + Math.random() * 145;
+      particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: color,
+        life: 1.0,
+        decay: 1.8 + Math.random() * 1.4,
+        size: 2.5 + Math.random() * 3
+      });
+    }
+  }
+
+  function spawnFloatingText(x, y, text, color) {
+    floatingTexts.push({
+      x: x,
+      y: y,
+      text: text,
+      color: color,
+      life: 1.0
+    });
+  }
+
+  // --- Smart Letter Spawning Logic ---
+  let letterSpawnTimer = 0;
+  function spawnLetter() {
+    const currentWord = STAGES[currentStageIndex].word;
+    const neededChar = currentWord[currentWordProgress];
+
+    // Guarantee target letter if 2 distractors spawned in a row
+    let charToSpawn = '';
+    if (nonTargetStreak >= 2 || Math.random() < 0.62) {
+      charToSpawn = neededChar;
+      nonTargetStreak = 0;
+    } else {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      do {
+        charToSpawn = alphabet[Math.floor(Math.random() * alphabet.length)];
+      } while (charToSpawn === neededChar);
+      nonTargetStreak++;
+    }
+
+    // Pick horizontal position avoiding existing letters near the top
+    let spawnX = 65 + Math.random() * 670;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const candidateX = 65 + Math.random() * 670;
+      const tooClose = letters.some((l) => l.y < 110 && Math.abs(l.x - candidateX) < 58);
+      if (!tooClose) {
+        spawnX = candidateX;
+        break;
+      }
+    }
+
+    const fallSpeed = 95 + (currentStageIndex * 14) + (Math.random() * 28);
+    letters.push({
+      char: charToSpawn,
+      x: spawnX,
+      y: 95,
+      radius: 21,
+      speed: fallSpeed,
+      isTarget: (charToSpawn === neededChar)
+    });
+  }
+
+  // --- Collision Handling ---
+  function checkCollectLetter(letter, index) {
+    const currentWord = STAGES[currentStageIndex].word;
+    const neededChar = currentWord[currentWordProgress];
+
+    if (letter.char === neededChar) {
+      // Correct letter collected!
+      currentWordProgress++;
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      Sound.catchCorrect(combo);
+
+      const feverMultiplier = combo >= 3 ? 2 : 1;
+      const earned = 200 * feverMultiplier;
+      score += earned;
+
+      spawnExplosion(letter.x, letter.y, '#38ef7d', 20);
+      spawnFloatingText(
+        letter.x,
+        letter.y - 10,
+        feverMultiplier > 1 ? `+${earned} FEVER!` : `+${earned}`,
+        '#38ef7d'
+      );
+      screenShake = 6;
+
+      // Refresh target status of remaining falling letters
+      const nextNeeded = currentWord[currentWordProgress];
+      letters.forEach((item) => {
+        item.isTarget = (item.char === nextNeeded);
+      });
+
+      // Check if word is complete
+      if (currentWordProgress >= currentWord.length) {
+        onWordCompleted();
+      }
+    } else {
+      // Wrong letter collected
+      Sound.catchWrong();
+      combo = 0;
+      score = Math.max(0, score - 80);
+      spawnExplosion(letter.x, letter.y, '#ff3838', 15);
+      spawnFloatingText(letter.x, letter.y - 10, '-80', '#ff4757');
+      screenShake = 11;
+    }
+
+    if (index < letters.length) {
+      letters.splice(index, 1);
+    }
+  }
+
+  function onWordCompleted() {
+    score += 1000 + Math.round(timeLeft * 10);
+    timeLeft = Math.min(99, timeLeft + 5); // +5 seconds bonus
+    spawnExplosion(400, 300, STAGES[currentStageIndex].color, 55);
+
+    if (currentStageIndex + 1 < STAGES.length) {
+      Sound.wordComplete();
+      gameState = STATE.WORD_CLEAR;
+      stageClearGuardTimer = 0.35;
+    } else {
+      Sound.gameWin();
+      gameState = STATE.GAME_WIN;
+    }
+  }
+
+  // --- Main Update Loop ---
+  function update(dt) {
+    if (shootCooldown > 0) shootCooldown -= dt;
+    if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 28);
+
+    // Scroll starfield
+    stars.forEach((star) => {
+      star.y += star.speed * dt;
+      if (star.y > 600) {
+        star.y = 0;
+        star.x = Math.random() * 800;
+      }
+    });
+
+    // Update explosion particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= p.decay * dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // Update floating score texts
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.y -= 42 * dt;
+      ft.life -= 1.15 * dt;
+      if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    // Pause gameplay & timer during Stage Clear celebration until student taps Next Stage
+    if (gameState === STATE.WORD_CLEAR) {
+      if (stageClearGuardTimer > 0) {
+        stageClearGuardTimer -= dt;
+      }
+      return;
+    }
+
+    if (gameState !== STATE.PLAYING) return;
+
+    // Countdown timer
+    timeLeft -= dt;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      Sound.gameOver();
+      gameState = STATE.GAME_OVER;
+      return;
+    }
+
+    // 4-Way Ship Movement (Keyboard + Right-hand D-pad)
+    let moveX = 0;
+    let moveY = 0;
+    if (keys['ArrowLeft'] || keys['KeyA'] || touchControls.left) moveX -= 1;
+    if (keys['ArrowRight'] || keys['KeyD'] || touchControls.right) moveX += 1;
+    if (keys['ArrowUp'] || keys['KeyW'] || touchControls.forward) moveY -= 1;
+    if (keys['ArrowDown'] || keys['KeyS'] || touchControls.backward) moveY += 1;
+
+    if (moveX !== 0 || moveY !== 0) {
+      const len = Math.hypot(moveX, moveY);
+      player.x += (moveX / len) * player.speed * dt;
+      player.y += (moveY / len) * player.speed * dt;
+    }
+
+    // Keep ship inside safe arena bounds
+    player.x = Math.max(36, Math.min(800 - 36, player.x));
+    player.y = Math.max(player.minY, Math.min(player.maxY, player.y));
+
+    // Update laser pulses
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      b.y -= b.speed * dt;
+      if (b.y < 95) {
+        bullets.splice(i, 1);
+        continue;
+      }
+
+      for (let j = letters.length - 1; j >= 0; j--) {
+        const l = letters[j];
+        const dist = Math.hypot(b.x - l.x, b.y - l.y);
+        if (dist < l.radius + b.radius) {
+          bullets.splice(i, 1);
+          checkCollectLetter(l, j);
+          break;
+        }
+      }
+    }
+
+    // Spawn falling letters
+    letterSpawnTimer += dt;
+    const spawnRate = Math.max(0.62, 1.18 - (currentStageIndex * 0.11));
+    if (letterSpawnTimer > spawnRate) {
+      letterSpawnTimer = 0;
+      spawnLetter();
+    }
+
+    // Update falling letters & direct ship collision
+    for (let i = letters.length - 1; i >= 0; i--) {
+      const l = letters[i];
+      l.y += l.speed * dt;
+
+      const distToPlayer = Math.hypot(player.x - l.x, player.y - l.y);
+      if (distToPlayer < l.radius + 24) {
+        checkCollectLetter(l, i);
+        continue;
+      }
+
+      if (l.y > 630) {
+        letters.splice(i, 1);
+      }
+    }
+  }
+
+  // --- Rendering Functions ---
+  function drawRoundedBox(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+
+  function drawPlayerShip() {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+
+    // Twin animated thruster flames
+    const flameFlicker = 10 + Math.random() * 9;
+    ctx.fillStyle = Math.random() < 0.5 ? '#ff4757' : '#ffa502';
+
+    // Left engine flame
+    ctx.beginPath();
+    ctx.moveTo(-16, 16);
+    ctx.lineTo(-10, 16 + flameFlicker);
+    ctx.lineTo(-4, 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Right engine flame
+    ctx.beginPath();
+    ctx.moveTo(4, 16);
+    ctx.lineTo(10, 16 + flameFlicker);
+    ctx.lineTo(16, 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wingtip laser pods
+    ctx.fillStyle = '#38ef7d';
+    ctx.fillRect(-27, 4, 4, 12);
+    ctx.fillRect(23, 4, 4, 12);
+
+    // Main triangular delta-wing starfighter hull
+    ctx.fillStyle = '#1e90ff';
+    ctx.beginPath();
+    ctx.moveTo(0, -24);      // Sharp nose tip
+    ctx.lineTo(28, 16);      // Right delta wingtip
+    ctx.lineTo(12, 12);      // Right inner notch
+    ctx.lineTo(0, 18);       // Rear tail center
+    ctx.lineTo(-12, 12);     // Left inner notch
+    ctx.lineTo(-28, 16);     // Left delta wingtip
+    ctx.closePath();
+    ctx.fill();
+
+    // Neon cyan outer hull border
+    ctx.strokeStyle = '#70a1ff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Inner fuselage stripe accents
+    ctx.strokeStyle = '#00d2ff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -16);
+    ctx.lineTo(15, 11);
+    ctx.moveTo(0, -16);
+    ctx.lineTo(-15, 11);
+    ctx.stroke();
+
+    // Triangular armored cockpit canopy
+    ctx.fillStyle = '#00f2fe';
+    ctx.beginPath();
+    ctx.moveTo(0, -11);
+    ctx.lineTo(6, 4);
+    ctx.lineTo(-6, 4);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawHUD() {
+    const stage = STAGES[currentStageIndex];
+    ctx.fillStyle = 'rgba(5, 8, 22, 0.9)';
+    ctx.fillRect(0, 0, 800, 96);
+    ctx.strokeStyle = '#2f3640';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, 800, 96);
+
+    // Score
+    ctx.font = 'bold 18px "Courier New", monospace';
+    ctx.fillStyle = '#ffd32a';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(`SCORE: ${score}`, 22, 30);
+
+    // Timer
+    ctx.fillStyle = timeLeft < 20 ? '#ff3838' : '#00d2d3';
+    ctx.textAlign = 'right';
+    ctx.fillText(`TIME: ${Math.ceil(timeLeft)}s`, 778, 30);
+
+    // Combo indicator
+    if (combo >= 3) {
+      ctx.fillStyle = '#ff4757';
+      ctx.font = 'italic bold 15px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`★ FEVER x2 (${combo} HIT) ★`, 22, 56);
+    }
+
+    // Stage number & English core value description
+    ctx.fillStyle = stage.color;
+    ctx.font = 'bold 15px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`STAGE ${currentStageIndex + 1}/5: ${stage.desc}`, 400, 26);
+
+    // Letter slots
+    const word = stage.word;
+    const boxSize = 33;
+    const spacing = 8;
+    const totalW = (word.length * boxSize) + ((word.length - 1) * spacing);
+    const startX = 400 - (totalW / 2);
+
+    for (let i = 0; i < word.length; i++) {
+      const bx = startX + (i * (boxSize + spacing));
+      const by = 42;
+      const isFilled = i < currentWordProgress;
+      const isCurrentTarget = (i === currentWordProgress);
+
+      ctx.fillStyle = isFilled ? '#2ed573' : (isCurrentTarget ? '#2f3542' : '#1e272e');
+      ctx.fillRect(bx, by, boxSize, boxSize);
+
+      ctx.strokeStyle = isCurrentTarget ? '#ffd32a' : '#57606f';
+      ctx.lineWidth = isCurrentTarget ? 2.5 : 1;
+      ctx.strokeRect(bx, by, boxSize, boxSize);
+
+      if (isFilled) {
+        ctx.fillStyle = '#051008';
+        ctx.font = 'bold 21px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(word[i], bx + boxSize / 2, by + boxSize / 2 + 1);
+      } else if (isCurrentTarget) {
+        ctx.fillStyle = Math.sin(Date.now() / 160) > 0 ? '#ffd32a' : '#a4b0be';
+        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(word[i], bx + boxSize / 2, by + boxSize / 2 + 1);
+      }
+    }
+  }
+
+  function drawStartScreen() {
+    ctx.fillStyle = 'rgba(4, 6, 18, 0.90)';
+    ctx.fillRect(0, 0, 800, 600);
+
+    // Decorative outer frame
+    ctx.strokeStyle = '#38ef7d';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(42, 48, 716, 504);
+
+    // Welcome Banner
+    ctx.fillStyle = '#ffd32a';
+    ctx.font = 'bold 26px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('★ WELCOME TO CCASS ★', 400, 120);
+
+    // Game Title
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 38px "Courier New", monospace';
+    ctx.fillText('CCASS WORD QUEST', 400, 178);
+
+    ctx.fillStyle = '#38ef7d';
+    ctx.font = 'bold 20px "Courier New", monospace';
+    ctx.fillText('PIXEL GUARDIAN: CORE VALUES EDITION', 400, 216);
+
+    // Mission briefing
+    ctx.fillStyle = '#e0f7ff';
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('Pilot your starfighter and collect the letters in order', 400, 274);
+    ctx.fillText('to unlock all 5 CCASS Core Values!', 400, 300);
+
+    // 5 Core Values badge row
+    ctx.fillStyle = '#a55eea';
+    ctx.font = 'bold 15px "Courier New", monospace';
+    ctx.fillText('CARE • COMMITMENT • APPRECIATION • SUPPORT • SUCCESS', 400, 352);
+
+    // Blinking "PRESS TO START" button box
+    const isBlinkOn = Math.sin(Date.now() / 220) > -0.2;
+    ctx.fillStyle = isBlinkOn ? 'rgba(56, 239, 125, 0.2)' : 'rgba(56, 239, 125, 0.06)';
+    ctx.fillRect(210, 415, 380, 58);
+    ctx.strokeStyle = '#38ef7d';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(210, 415, 380, 58);
+
+    ctx.fillStyle = isBlinkOn ? '#ffd32a' : '#ffffff';
+    ctx.font = 'bold 24px "Courier New", monospace';
+    ctx.fillText('▶ PRESS TO START ◀', 400, 452);
+
+    ctx.fillStyle = '#88ccff';
+    ctx.font = '13px "Courier New", monospace';
+    ctx.fillText('Tap Screen or Press FIRE to Launch', 400, 512);
+  }
+
+  function drawWordClearScreen() {
+    const stage = STAGES[currentStageIndex];
+    ctx.fillStyle = 'rgba(4, 8, 22, 0.90)';
+    ctx.fillRect(65, 145, 670, 305);
+    ctx.strokeStyle = stage.color;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(65, 145, 670, 305);
+
+    ctx.fillStyle = '#ffd32a';
+    ctx.font = 'bold 34px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('★ STAGE CLEAR! ★', 400, 202);
+
+    ctx.fillStyle = stage.color;
+    ctx.font = 'bold 23px "Courier New", monospace';
+    ctx.fillText(`${stage.word} - ${stage.desc}`, 400, 255);
+
+    ctx.fillStyle = '#2ed573';
+    ctx.font = 'bold 19px "Courier New", monospace';
+    ctx.fillText('+5 SECONDS BONUS!', 400, 302);
+
+    // Interactive "PRESS TO THE NEXT STAGE" arcade button
+    const btnX = 185;
+    const btnY = 335;
+    const btnW = 430;
+    const btnH = 56;
+    const isPulseOn = Math.sin(Date.now() / 220) > 0;
+
+    // Button drop shadow
+    ctx.fillStyle = '#146c38';
+    drawRoundedBox(btnX, btnY + 5, btnW, btnH, 12);
+    ctx.fill();
+
+    // Button body
+    ctx.fillStyle = isPulseOn ? '#2ed573' : '#26ba63';
+    drawRoundedBox(btnX, btnY, btnW, btnH, 12);
+    ctx.fill();
+
+    ctx.strokeStyle = '#d8ffe8';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Button label
+    ctx.fillStyle = '#04140a';
+    ctx.font = 'bold 20px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('▶ PRESS TO THE NEXT STAGE ◀', 400, btnY + btnH / 2 + 1);
+
+    // Helper hint
+    ctx.fillStyle = '#a4b0be';
+    ctx.font = '13px "Courier New", monospace';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('Tap the button or press FIRE to continue', 400, 425);
+  }
+
+  function drawGameOverScreen() {
+    ctx.fillStyle = 'rgba(20, 4, 8, 0.90)';
+    ctx.fillRect(0, 0, 800, 600);
+
+    ctx.fillStyle = '#ff4757';
+    ctx.font = 'bold 44px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('TIME UP!', 400, 210);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px "Courier New", monospace';
+    ctx.fillText(`FINAL SCORE: ${score}`, 400, 280);
+
+    ctx.fillStyle = '#88ccff';
+    ctx.font = '18px "Courier New", monospace';
+    ctx.fillText(`STAGE REACHED: ${currentStageIndex + 1} / 5`, 400, 325);
+
+    ctx.fillStyle = '#ffd32a';
+    ctx.font = 'bold 22px "Courier New", monospace';
+    if (Math.sin(Date.now() / 220) > -0.2) {
+      ctx.fillText('▶ TAP SCREEN OR PRESS FIRE TO PLAY AGAIN ◀', 400, 420);
+    }
+  }
+
+  function drawGameWinScreen() {
+    ctx.fillStyle = 'rgba(5, 22, 12, 0.92)';
+    ctx.fillRect(0, 0, 800, 600);
+
+    ctx.strokeStyle = '#ffd32a';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(48, 56, 704, 488);
+
+    ctx.fillStyle = '#ffd32a';
+    ctx.font = 'bold 36px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('★ ALL CCASS VALUES UNLOCKED! ★', 400, 150);
+
+    ctx.fillStyle = '#38ef7d';
+    ctx.font = 'bold 21px "Courier New", monospace';
+    ctx.fillText('Congratulations! You mastered all 5 Core Values!', 400, 208);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 26px "Courier New", monospace';
+    ctx.fillText(`HERO SCORE: ${score}`, 400, 275);
+
+    ctx.fillStyle = '#00ffff';
+    ctx.font = '18px "Courier New", monospace';
+    ctx.fillText(`MAX COMBO: ${maxCombo} HIT`, 400, 315);
+
+    ctx.fillStyle = '#ffd32a';
+    ctx.font = 'bold 17px "Courier New", monospace';
+    ctx.fillText('Show this screen at the booth to claim your CCASS prize!', 400, 375);
+
+    ctx.fillStyle = '#00d2d3';
+    ctx.font = 'bold 20px "Courier New", monospace';
+    if (Math.sin(Date.now() / 220) > -0.2) {
+      ctx.fillText('▶ TAP SCREEN OR PRESS FIRE TO PLAY AGAIN ◀', 400, 460);
+    }
+  }
+
+  function draw() {
+    ctx.save();
+    if (screenShake > 0) {
+      const shakeX = (Math.random() - 0.5) * screenShake;
+      const shakeY = (Math.random() - 0.5) * screenShake;
+      ctx.translate(shakeX, shakeY);
+    }
+
+    // 1. Background & starfield
+    ctx.fillStyle = '#060613';
+    ctx.fillRect(0, 0, 800, 600);
+
+    ctx.fillStyle = '#ffffff';
+    stars.forEach((star) => {
+      ctx.globalAlpha = star.speed > 65 ? 0.9 : 0.45;
+      ctx.fillRect(star.x, star.y, star.size, star.size);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // 2. Explosion particles
+    particles.forEach((p) => {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // 3. Laser pulses
+    ctx.fillStyle = '#00ffff';
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 8;
+    bullets.forEach((b) => {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+
+    // 4. Falling letter orbs
+    letters.forEach((l) => {
+      ctx.save();
+      ctx.translate(l.x, l.y);
+
+      ctx.fillStyle = 'rgba(16, 24, 48, 0.88)';
+      ctx.beginPath();
+      ctx.arc(0, 0, l.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = l.isTarget ? '#38ef7d' : '#4a69bd';
+      if (l.isTarget) {
+        ctx.shadowColor = '#38ef7d';
+        ctx.shadowBlur = 10;
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 21px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(l.char, 0, 1);
+      ctx.restore();
+    });
+
+    // 5. Triangular Player Starfighter
+    drawPlayerShip();
+
+    // 6. Floating score popups
+    floatingTexts.forEach((ft) => {
+      ctx.globalAlpha = Math.max(0, ft.life);
+      ctx.fillStyle = ft.color;
+      ctx.font = 'bold 16px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ft.text, ft.x, ft.y);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // 7. Top HUD
+    drawHUD();
+
+    // 8. State Overlays
+    if (gameState === STATE.START) drawStartScreen();
+    if (gameState === STATE.WORD_CLEAR) drawWordClearScreen();
+    if (gameState === STATE.GAME_OVER) drawGameOverScreen();
+    if (gameState === STATE.GAME_WIN) drawGameWinScreen();
+
+    ctx.restore();
+  }
+
+  // --- Main Animation Loop ---
+  function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+
+    update(dt);
+    draw();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  requestAnimationFrame(gameLoop);
+};
+</script>
+</body>
+</html>
