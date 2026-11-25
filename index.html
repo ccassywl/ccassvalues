@@ -218,10 +218,20 @@
   </div>
 
 <script>
-// Register Service Worker for Offline iPad Support
+// Register Service Worker & auto-reload when a new version activates
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      reg.update();
+    }).catch(() => {});
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   });
 }
 
@@ -613,7 +623,6 @@ if ('serviceWorker' in navigator) {
   }
 
   // --- Collision & Scoring ---
-  // Returns true if the word was just completed (so callers exit loops immediately)
   function checkCollectLetter(letter, index) {
     const stage = STAGES[currentStageIndex];
     if (!stage || currentWordProgress >= stage.word.length) return false;
