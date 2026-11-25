@@ -574,7 +574,10 @@ if ('serviceWorker' in navigator) {
   // --- Letter Spawning ---
   let letterSpawnTimer = 0;
   function spawnLetter() {
-    const currentWord = STAGES[currentStageIndex].word;
+    const stage = STAGES[currentStageIndex];
+    if (!stage || currentWordProgress >= stage.word.length) return;
+
+    const currentWord = stage.word;
     const neededChar = currentWord[currentWordProgress];
 
     let charToSpawn = '';
@@ -610,8 +613,12 @@ if ('serviceWorker' in navigator) {
   }
 
   // --- Collision & Scoring ---
+  // Returns true if the word was just completed (so callers exit loops immediately)
   function checkCollectLetter(letter, index) {
-    const currentWord = STAGES[currentStageIndex].word;
+    const stage = STAGES[currentStageIndex];
+    if (!stage || currentWordProgress >= stage.word.length) return false;
+
+    const currentWord = stage.word;
     const neededChar = currentWord[currentWordProgress];
 
     if (letter.char === neededChar) {
@@ -633,6 +640,7 @@ if ('serviceWorker' in navigator) {
 
       if (currentWordProgress >= currentWord.length) {
         onWordCompleted();
+        return true;
       }
     } else {
       Sound.catchWrong();
@@ -642,7 +650,11 @@ if ('serviceWorker' in navigator) {
       spawnFloatingText(letter.x, letter.y - 10, '-80', '#ff4757');
       screenShake = 11;
     }
-    letters.splice(index, 1);
+
+    if (index >= 0 && index < letters.length) {
+      letters.splice(index, 1);
+    }
+    return false;
   }
 
   function onWordCompleted() {
@@ -651,11 +663,12 @@ if ('serviceWorker' in navigator) {
     timeLeft = Math.min(99, timeLeft + 5);
     spawnExplosion(400, 300, STAGES[currentStageIndex].color, 50);
 
+    letters = [];
+    bullets = [];
+
     if (currentStageIndex + 1 < STAGES.length) {
       gameState = STATE.WORD_CLEAR;
       stageClearReadyTimer = 0.35;
-      letters = [];
-      bullets = [];
     } else {
       gameState = STATE.GAME_WIN;
     }
@@ -724,7 +737,10 @@ if ('serviceWorker' in navigator) {
 
     // Update Bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
+      if (gameState !== STATE.PLAYING) return;
       const b = bullets[i];
+      if (!b) continue;
+
       b.y -= b.speed * dt;
       if (b.y < 95) {
         bullets.splice(i, 1);
@@ -733,14 +749,19 @@ if ('serviceWorker' in navigator) {
 
       for (let j = letters.length - 1; j >= 0; j--) {
         const l = letters[j];
+        if (!l) continue;
+
         const dist = Math.hypot(b.x - l.x, b.y - l.y);
         if (dist < l.radius + b.radius) {
           bullets.splice(i, 1);
-          checkCollectLetter(l, j);
+          const completed = checkCollectLetter(l, j);
+          if (completed || gameState !== STATE.PLAYING) return;
           break;
         }
       }
     }
+
+    if (gameState !== STATE.PLAYING) return;
 
     // Spawn Falling Letters
     letterSpawnTimer += dt;
@@ -751,15 +772,23 @@ if ('serviceWorker' in navigator) {
     }
 
     // Update Letters & Player Collision
-    const neededChar = STAGES[currentStageIndex].word[currentWordProgress];
+    const stage = STAGES[currentStageIndex];
+    const neededChar = stage && currentWordProgress < stage.word.length
+      ? stage.word[currentWordProgress]
+      : '';
+
     for (let i = letters.length - 1; i >= 0; i--) {
+      if (gameState !== STATE.PLAYING) return;
       const l = letters[i];
+      if (!l) continue;
+
       l.y += l.speed * dt;
       l.isTarget = (l.char === neededChar);
 
       const distToPlayer = Math.hypot(player.x - l.x, player.y - l.y);
       if (distToPlayer < l.radius + 22) {
-        checkCollectLetter(l, i);
+        const completed = checkCollectLetter(l, i);
+        if (completed || gameState !== STATE.PLAYING) return;
         continue;
       }
 
@@ -777,14 +806,13 @@ if ('serviceWorker' in navigator) {
     // Twin Engine Thruster Flames
     const flameLen = 14 + Math.random() * 10;
     ctx.fillStyle = Math.random() < 0.5 ? '#ff4757' : '#ffa502';
-    // Left thruster
     ctx.beginPath();
     ctx.moveTo(-14, 16);
     ctx.lineTo(-8, 16 + flameLen);
     ctx.lineTo(-3, 16);
     ctx.closePath();
     ctx.fill();
-    // Right thruster
+
     ctx.beginPath();
     ctx.moveTo(3, 16);
     ctx.lineTo(8, 16 + flameLen);
@@ -1126,8 +1154,12 @@ if ('serviceWorker' in navigator) {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
     lastTime = timestamp;
 
-    update(dt);
-    draw();
+    try {
+      update(dt);
+      draw();
+    } catch (err) {
+      console.error('Game loop error:', err);
+    }
 
     requestAnimationFrame(gameLoop);
   }
