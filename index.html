@@ -3,9 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CCASS Word Quest: Pixel Guardian</title>
+  <title>Word Quest</title>
+
+  <!-- PWA & iPad Home Screen App Configuration -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./logo.png">
+  <link rel="apple-touch-icon" href="./logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Word Quest">
+  <meta name="theme-color" content="#050510">
+
   <style>
-    /* Global reset and touch callout prevention for iPad */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -13,38 +22,45 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
+      touch-action: none;
     }
 
     html, body {
       width: 100%;
       height: 100%;
+      background-color: #050510;
+      color: #fff;
+      font-family: 'Courier New', Courier, monospace;
       overflow: hidden;
-      touch-action: none;
     }
 
     body {
-      background: radial-gradient(circle at center, #0e132b 0%, #050510 100%);
-      color: #ffffff;
-      font-family: 'Courier New', Courier, monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100dvh;
       padding: 8px 12px;
+      gap: 10px;
     }
 
-    /* Responsive 4:3 game viewport sized to leave room for iPad arcade controls */
+    #game-wrapper {
+      width: 100%;
+      max-width: 820px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
     #game-container {
       position: relative;
       width: 100%;
-      max-width: 780px;
+      max-height: 66vh;
       aspect-ratio: 4 / 3;
-      max-height: 64dvh;
-      box-shadow: 0 0 35px rgba(56, 239, 125, 0.35), 0 0 15px rgba(0, 210, 255, 0.3);
+      box-shadow: 0 0 28px rgba(0, 255, 204, 0.35), 0 0 10px rgba(255, 0, 128, 0.25);
       border: 4px solid #38ef7d;
-      border-radius: 14px;
-      background: #060613;
+      border-radius: 12px;
+      background: #0a0a1a;
       overflow: hidden;
     }
 
@@ -52,259 +68,230 @@
       display: block;
       width: 100%;
       height: 100%;
-      touch-action: none;
+      image-rendering: pixelated;
     }
 
-    /* Retro CRT scanline overlay */
+    /* Retro CRT scanline effect */
     .crt-overlay {
       pointer-events: none;
       position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
       background-size: 100% 4px, 6px 100%;
       z-index: 10;
     }
 
-    /* iPad-friendly ergonomic arcade controls bar */
+    /* iPad Arcade Control Bar: Action Controls on Left, Movement D-Pad on Right */
     .controls-bar {
       width: 100%;
-      max-width: 780px;
-      margin-top: 10px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
-      touch-action: none;
+      padding: 4px 6px;
     }
 
-    /* Left side action cluster (Sound, Restart, Fire) */
     .action-cluster {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-      touch-action: none;
+      align-items: center;
+      gap: 12px;
     }
 
-    .utility-row {
+    .utility-stack {
       display: flex;
+      flex-direction: column;
       gap: 8px;
     }
 
-    /* Right side 4-way directional pad (Forward, Backward, Left, Right) */
     .dpad-grid {
       display: grid;
-      grid-template-columns: repeat(3, 64px);
-      grid-template-rows: repeat(2, 46px);
-      gap: 6px;
-      touch-action: none;
+      grid-template-columns: repeat(3, 68px);
+      grid-template-rows: repeat(2, 54px);
+      gap: 8px;
     }
 
-    .dpad-up {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
-    .dpad-left {
-      grid-column: 1;
-      grid-row: 2;
-    }
-
-    .dpad-down {
-      grid-column: 2;
-      grid-row: 2;
-    }
-
-    .dpad-right {
-      grid-column: 3;
-      grid-row: 2;
-    }
-
-    .btn-arcade {
-      background: linear-gradient(180deg, #1e2a4a 0%, #10172a 100%);
+    .ctrl-btn {
+      background: linear-gradient(180deg, #1e2738 0%, #101622 100%);
       color: #e0f7ff;
-      border: 2px solid #00d2ff;
-      border-radius: 10px;
-      font-family: inherit;
-      font-size: 13px;
+      border: 2px solid #38ef7d;
+      border-radius: 12px;
+      font-family: 'Courier New', Courier, monospace;
       font-weight: bold;
-      cursor: pointer;
+      font-size: 15px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 0 #007799, 0 0 10px rgba(0, 210, 255, 0.25);
-      transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.12s ease;
-      touch-action: none;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #145a32, 0 0 10px rgba(56, 239, 125, 0.2);
+      transition: transform 0.05s, box-shadow 0.05s, background 0.1s;
     }
 
-    .btn-arcade:active,
-    .btn-arcade.active {
+    .ctrl-btn:active,
+    .ctrl-btn.active {
       transform: translateY(3px);
-      box-shadow: 0 1px 0 #007799;
-      background: linear-gradient(180deg, #2d4273 0%, #182544 100%);
+      box-shadow: 0 1px 0 #145a32;
+      background: #233b2e;
     }
+
+    .btn-up { grid-column: 2; grid-row: 1; }
+    .btn-left { grid-column: 1; grid-row: 2; }
+    .btn-down { grid-column: 2; grid-row: 2; }
+    .btn-right { grid-column: 3; grid-row: 2; }
 
     .btn-fire {
-      border-color: #38ef7d;
-      color: #d8ffe8;
-      box-shadow: 0 5px 0 #1c8f49, 0 0 14px rgba(56, 239, 125, 0.4);
-      width: 164px;
-      height: 54px;
-      font-size: 17px;
-      letter-spacing: 1px;
+      width: 130px;
+      height: 116px;
+      border-color: #ff4757;
+      background: linear-gradient(180deg, #4b1520 0%, #240910 100%);
+      color: #ffd32a;
+      font-size: 20px;
+      box-shadow: 0 5px 0 #781722, 0 0 16px rgba(255, 71, 87, 0.35);
     }
 
     .btn-fire:active,
     .btn-fire.active {
-      box-shadow: 0 1px 0 #1c8f49;
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #781722;
+      background: #6e1c2b;
     }
 
-    .btn-utility {
-      padding: 7px 12px;
-      font-size: 12px;
-      border-color: #a55eea;
-      box-shadow: 0 3px 0 #5f27cd;
+    .btn-util {
+      width: 96px;
+      height: 54px;
+      font-size: 13px;
+      border-color: #00d2ff;
+      box-shadow: 0 4px 0 #0a4d68;
     }
 
-    .btn-utility:active {
-      box-shadow: 0 1px 0 #5f27cd;
+    .btn-util:active {
+      box-shadow: 0 1px 0 #0a4d68;
+      background: #14364a;
     }
 
     .instructions {
-      margin-top: 6px;
       font-size: 12px;
       color: #88ccff;
       text-align: center;
-      letter-spacing: 0.4px;
-    }
-
-    @media (max-width: 520px) {
-      .dpad-grid {
-        grid-template-columns: repeat(3, 52px);
-        grid-template-rows: repeat(2, 42px);
-        gap: 5px;
-      }
-      .btn-arcade {
-        font-size: 11px;
-      }
-      .btn-fire {
-        width: 132px;
-        height: 48px;
-        font-size: 15px;
-      }
-      .instructions {
-        display: none;
-      }
+      letter-spacing: 0.5px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Game Canvas -->
-  <div id="game-container">
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div class="crt-overlay"></div>
-  </div>
+  <div id="game-wrapper">
+    <div id="game-container">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <div class="crt-overlay"></div>
+    </div>
 
-  <!-- iPad Multi-Touch Arcade Controls (Actions on Left + 4-Way Movement on Right) -->
-  <div class="controls-bar">
-    <div class="action-cluster">
-      <div class="utility-row">
-        <button type="button" class="btn-arcade btn-utility" id="btnMute">🔊 SOUND: ON</button>
-        <button type="button" class="btn-arcade btn-utility" id="btnRestart">↻ RESTART</button>
+    <!-- iPad Multi-Touch Arcade Controls -->
+    <div class="controls-bar">
+      <!-- Left: Sound, Restart & Fire -->
+      <div class="action-cluster">
+        <div class="utility-stack">
+          <button class="ctrl-btn btn-util" id="btnSound" type="button">🔊 SOUND</button>
+          <button class="ctrl-btn btn-util" id="btnRestart" type="button">↻ RESTART</button>
+        </div>
+        <button class="ctrl-btn btn-fire" id="btnFire" type="button">
+          <span>⚡ FIRE</span>
+          <span style="font-size:11px; margin-top:4px; color:#fff;">CAPTURE</span>
+        </button>
       </div>
-      <button type="button" class="btn-arcade btn-fire" id="btnFire" aria-label="Fire Pulse">⚡ FIRE</button>
+
+      <!-- Right: 4-Way Movement Pad -->
+      <div class="dpad-grid">
+        <button class="ctrl-btn btn-up" id="btnUp" type="button">▲<span style="font-size:11px;">FWD</span></button>
+        <button class="ctrl-btn btn-left" id="btnLeft" type="button">◀<span style="font-size:11px;">LEFT</span></button>
+        <button class="ctrl-btn btn-down" id="btnDown" type="button">▼<span style="font-size:11px;">BWD</span></button>
+        <button class="ctrl-btn btn-right" id="btnRight" type="button">▶<span style="font-size:11px;">RIGHT</span></button>
+      </div>
     </div>
 
-    <div class="dpad-grid" role="group" aria-label="Directional Controls">
-      <button type="button" class="btn-arcade dpad-up" id="btnForward" aria-label="Move Forward">▲ FWD</button>
-      <button type="button" class="btn-arcade dpad-left" id="btnLeft" aria-label="Move Left">◀ LEFT</button>
-      <button type="button" class="btn-arcade dpad-down" id="btnBackward" aria-label="Move Backward">▼ BWD</button>
-      <button type="button" class="btn-arcade dpad-right" id="btnRight" aria-label="Move Right">RIGHT ▶</button>
+    <div class="instructions">
+      iPad Controls: Use Left Buttons to Fire &amp; Right Pad (or Drag) to Move | Keyboard: Arrows / WASD + Spacebar
     </div>
-  </div>
-
-  <div class="instructions">
-    [iPad / Touch] Left: Sound, Restart &amp; FIRE | Right: Move (FWD / BWD / LEFT / RIGHT) | [Keyboard] Arrows / WASD + Space
   </div>
 
 <script>
-window.onload = function () {
+// Register Service Worker for Offline iPad Support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+(() => {
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
-  // --- 8-Bit Chiptune Synthesizer (Web Audio API) ---
+  // --- 8-Bit Sound Synthesizer (Web Audio API) ---
   let audioCtx = null;
-  let isMuted = false;
+  let soundEnabled = true;
 
   function initAudio() {
+    if (!soundEnabled) return;
     if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-      }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(() => {});
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
     }
   }
 
-  function playTone(freq, type, duration, delay = 0, volume = 0.14) {
-    if (isMuted || !audioCtx) return;
+  function playTone(freq, type, duration, delay = 0) {
+    if (!soundEnabled || !audioCtx) return;
     setTimeout(() => {
       try {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {
-        // Ignore browser autoplay restriction exceptions
-      }
+      } catch (e) {}
     }, delay);
   }
 
   const Sound = {
-    catchCorrect: (currentCombo) => {
-      const pitchBoost = Math.min(currentCombo * 25, 200);
-      playTone(523.25 + pitchBoost, 'triangle', 0.08, 0);
-      playTone(659.25 + pitchBoost, 'triangle', 0.08, 55);
-      playTone(783.99 + pitchBoost, 'square', 0.12, 110);
+    catchCorrect: () => {
+      playTone(523.25, 'triangle', 0.08, 0);
+      playTone(659.25, 'triangle', 0.08, 60);
+      playTone(783.99, 'square', 0.12, 120);
     },
     catchWrong: () => {
-      playTone(185, 'sawtooth', 0.15, 0, 0.16);
-      playTone(125, 'sawtooth', 0.25, 95, 0.16);
+      playTone(180, 'sawtooth', 0.15, 0);
+      playTone(130, 'sawtooth', 0.25, 100);
     },
     shoot: () => {
-      playTone(920, 'square', 0.05, 0, 0.09);
+      playTone(880, 'square', 0.05, 0);
     },
     wordComplete: () => {
       playTone(523.25, 'square', 0.1, 0);
-      playTone(659.25, 'square', 0.1, 90);
-      playTone(783.99, 'square', 0.1, 180);
-      playTone(1046.5, 'square', 0.28, 270);
+      playTone(659.25, 'square', 0.1, 100);
+      playTone(783.99, 'square', 0.1, 200);
+      playTone(1046.5, 'square', 0.3, 300);
     },
-    gameWin: () => {
-      const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
-      notes.forEach((n, idx) => {
-        playTone(n, 'square', idx === notes.length - 1 ? 0.35 : 0.11, idx * 110);
-      });
+    nextStage: () => {
+      playTone(659.25, 'triangle', 0.08, 0);
+      playTone(880.00, 'triangle', 0.14, 70);
     },
     gameOver: () => {
       playTone(400, 'sawtooth', 0.2, 0);
       playTone(300, 'sawtooth', 0.2, 150);
-      playTone(190, 'sawtooth', 0.4, 300);
+      playTone(200, 'sawtooth', 0.4, 300);
     }
   };
 
-  // --- 5 CCASS Core Values Word Stages ---
+  // --- 5 Core Value Stages (Ordered to spell C-C-A-S-S) ---
   const STAGES = [
     { word: 'CARE', desc: 'CARING FOR ALL', color: '#ff5e7e' },
     { word: 'COMMITMENT', desc: 'SHARED COMMITMENT', color: '#ff9f1a' },
@@ -313,7 +300,7 @@ window.onload = function () {
     { word: 'SUCCESS', desc: 'STRIVING FOR SUCCESS', color: '#ffd32a' }
   ];
 
-  // --- Game State Enum ---
+  // --- Game States ---
   const STATE = {
     START: 0,
     PLAYING: 1,
@@ -325,24 +312,35 @@ window.onload = function () {
   let gameState = STATE.START;
   let score = 0;
   let combo = 0;
-  let maxCombo = 0;
   let timeLeft = 90;
   let currentStageIndex = 0;
   let currentWordProgress = 0;
   let lastTime = 0;
-  let stageClearGuardTimer = 0; // Brief buffer to prevent accidental skip on final tap
   let screenShake = 0;
-  let shootCooldown = 0;
   let nonTargetStreak = 0;
+  let stageClearReadyTimer = 0;
 
-  // --- Player Starfighter Entity ---
+  // Next Stage Button Hitbox on Canvas (800x600 space)
+  const nextStageBtn = {
+    x: 210,
+    y: 365,
+    w: 380,
+    h: 58
+  };
+
+  // --- Player Starfighter ---
   const player = {
     x: 400,
-    y: 525,
+    y: 520,
     width: 56,
-    height: 44,
-    speed: 440,
-    minY: 130,
+    height: 46,
+    speed: 440
+  };
+
+  const bounds = {
+    minX: 38,
+    maxX: 762,
+    minY: 135,
     maxY: 560
   };
 
@@ -352,29 +350,29 @@ window.onload = function () {
   let floatingTexts = [];
   let stars = [];
 
-  // Initialize scrolling starfield background
+  // Starfield Background
   for (let i = 0; i < 75; i++) {
     stars.push({
       x: Math.random() * 800,
       y: Math.random() * 600,
       size: Math.random() < 0.7 ? 1.5 : 2.5,
-      speed: 25 + Math.random() * 75
+      speed: 0.6 + Math.random() * 1.6
     });
   }
 
-  // --- Keyboard & Multi-Touch Input Controls ---
+  // --- Input Handling (Keyboard + iPad Multi-Touch) ---
   const keys = {};
-  const touchControls = {
+  const touchState = {
     left: false,
     right: false,
-    forward: false,
-    backward: false
+    up: false,
+    down: false
   };
 
   window.addEventListener('keydown', (e) => {
     initAudio();
     keys[e.code] = true;
-    if (e.code === 'Space' || e.code === 'Enter') {
+    if (e.code === 'Space') {
       e.preventDefault();
       handleAction();
     }
@@ -384,32 +382,31 @@ window.onload = function () {
     keys[e.code] = false;
   });
 
-  // Helper to bind pointer hold events for directional buttons on iPad
-  function bindHoldButton(element, controlKey) {
-    const activate = (e) => {
+  function bindHoldButton(elementId, directionKey) {
+    const btn = document.getElementById(elementId);
+    const press = (e) => {
       e.preventDefault();
       initAudio();
-      touchControls[controlKey] = true;
-      element.classList.add('active');
+      touchState[directionKey] = true;
+      btn.classList.add('active');
     };
-    const deactivate = (e) => {
+    const release = (e) => {
       if (e) e.preventDefault();
-      touchControls[controlKey] = false;
-      element.classList.remove('active');
+      touchState[directionKey] = false;
+      btn.classList.remove('active');
     };
 
-    element.addEventListener('pointerdown', activate);
-    element.addEventListener('pointerup', deactivate);
-    element.addEventListener('pointercancel', deactivate);
-    element.addEventListener('pointerleave', deactivate);
+    btn.addEventListener('pointerdown', press);
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointerleave', release);
+    btn.addEventListener('pointercancel', release);
   }
 
-  bindHoldButton(document.getElementById('btnLeft'), 'left');
-  bindHoldButton(document.getElementById('btnRight'), 'right');
-  bindHoldButton(document.getElementById('btnForward'), 'forward');
-  bindHoldButton(document.getElementById('btnBackward'), 'backward');
+  bindHoldButton('btnLeft', 'left');
+  bindHoldButton('btnRight', 'right');
+  bindHoldButton('btnUp', 'up');
+  bindHoldButton('btnDown', 'down');
 
-  // Fire / Action button on left side
   const btnFire = document.getElementById('btnFire');
   btnFire.addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -417,66 +414,27 @@ window.onload = function () {
     btnFire.classList.add('active');
     handleAction();
   });
-  const releaseFireBtn = () => btnFire.classList.remove('active');
-  btnFire.addEventListener('pointerup', releaseFireBtn);
-  btnFire.addEventListener('pointercancel', releaseFireBtn);
-  btnFire.addEventListener('pointerleave', releaseFireBtn);
+  btnFire.addEventListener('pointerup', () => btnFire.classList.remove('active'));
+  btnFire.addEventListener('pointerleave', () => btnFire.classList.remove('active'));
+  btnFire.addEventListener('pointercancel', () => btnFire.classList.remove('active'));
 
-  // Sound Mute Toggle
-  const btnMute = document.getElementById('btnMute');
-  btnMute.addEventListener('click', () => {
-    initAudio();
-    isMuted = !isMuted;
-    btnMute.textContent = isMuted ? '🔇 SOUND: OFF' : '🔊 SOUND: ON';
+  const btnSound = document.getElementById('btnSound');
+  btnSound.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    soundEnabled = !soundEnabled;
+    if (soundEnabled) initAudio();
+    btnSound.textContent = soundEnabled ? '🔊 SOUND' : '🔇 MUTED';
   });
 
-  // Restart Button
   const btnRestart = document.getElementById('btnRestart');
-  btnRestart.addEventListener('click', () => {
+  btnRestart.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     initAudio();
     restartGame();
   });
 
-  // Direct canvas touch/click (for Start screen, Next Stage button, or 2D dragging)
-  let isCanvasDragging = false;
-  canvas.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    initAudio();
-    const pos = getCanvasCoords(e);
-
-    if (gameState === STATE.START || gameState === STATE.GAME_OVER || gameState === STATE.GAME_WIN) {
-      restartGame();
-      return;
-    }
-
-    if (gameState === STATE.WORD_CLEAR) {
-      if (stageClearGuardTimer <= 0) {
-        // Trigger Next Stage when tapping the "PRESS TO THE NEXT STAGE" button (or modal card)
-        advanceToNextStage();
-      }
-      return;
-    }
-
-    if (gameState === STATE.PLAYING) {
-      isCanvasDragging = true;
-      movePlayerTo(pos.x, pos.y);
-      handleAction();
-    }
-  });
-
-  canvas.addEventListener('pointermove', (e) => {
-    if (isCanvasDragging && gameState === STATE.PLAYING) {
-      e.preventDefault();
-      const pos = getCanvasCoords(e);
-      movePlayerTo(pos.x, pos.y);
-    }
-  });
-
-  const endCanvasDrag = () => {
-    isCanvasDragging = false;
-  };
-  window.addEventListener('pointerup', endCanvasDrag);
-  window.addEventListener('pointercancel', endCanvasDrag);
+  // Canvas Touch / Drag Support
+  let activeCanvasPointerId = null;
 
   function getCanvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
@@ -488,23 +446,68 @@ window.onload = function () {
     };
   }
 
-  function movePlayerTo(x, y) {
-    player.x = Math.max(36, Math.min(800 - 36, x));
-    player.y = Math.max(player.minY, Math.min(player.maxY, y));
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    initAudio();
+    const pos = getCanvasCoords(e);
+
+    if (gameState === STATE.START || gameState === STATE.GAME_OVER || gameState === STATE.GAME_WIN) {
+      restartGame();
+      return;
+    }
+
+    if (gameState === STATE.WORD_CLEAR) {
+      if (stageClearReadyTimer <= 0) {
+        const inBtnX = pos.x >= nextStageBtn.x && pos.x <= nextStageBtn.x + nextStageBtn.w;
+        const inBtnY = pos.y >= nextStageBtn.y && pos.y <= nextStageBtn.y + nextStageBtn.h;
+        if (inBtnX && inBtnY) {
+          advanceToNextStage();
+        }
+      }
+      return;
+    }
+
+    if (gameState === STATE.PLAYING) {
+      activeCanvasPointerId = e.pointerId;
+      movePlayerToCanvasPos(pos);
+      fireBullet();
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (activeCanvasPointerId === e.pointerId && gameState === STATE.PLAYING) {
+      const pos = getCanvasCoords(e);
+      movePlayerToCanvasPos(pos);
+    }
+  });
+
+  const clearCanvasPointer = (e) => {
+    if (activeCanvasPointerId === e.pointerId) {
+      activeCanvasPointerId = null;
+    }
+  };
+  canvas.addEventListener('pointerup', clearCanvasPointer);
+  canvas.addEventListener('pointercancel', clearCanvasPointer);
+
+  function movePlayerToCanvasPos(pos) {
+    player.x = Math.max(bounds.minX, Math.min(bounds.maxX, pos.x));
+    player.y = Math.max(bounds.minY, Math.min(bounds.maxY, pos.y));
   }
 
   function handleAction() {
     if (gameState === STATE.START || gameState === STATE.GAME_OVER || gameState === STATE.GAME_WIN) {
       restartGame();
-    } else if (gameState === STATE.WORD_CLEAR && stageClearGuardTimer <= 0) {
-      advanceToNextStage();
-    } else if (gameState === STATE.PLAYING && shootCooldown <= 0) {
+    } else if (gameState === STATE.WORD_CLEAR) {
+      if (stageClearReadyTimer <= 0) {
+        advanceToNextStage();
+      }
+    } else if (gameState === STATE.PLAYING) {
       fireBullet();
     }
   }
 
   function advanceToNextStage() {
-    Sound.shoot();
+    Sound.nextStage();
     currentStageIndex++;
     currentWordProgress = 0;
     nonTargetStreak = 0;
@@ -514,38 +517,37 @@ window.onload = function () {
   }
 
   function fireBullet() {
-    shootCooldown = 0.14;
     Sound.shoot();
     bullets.push({
       x: player.x,
       y: player.y - 26,
       radius: 4.5,
-      speed: 650
+      speed: 640
     });
   }
 
   function restartGame() {
     score = 0;
     combo = 0;
-    maxCombo = 0;
     timeLeft = 90;
     currentStageIndex = 0;
     currentWordProgress = 0;
     nonTargetStreak = 0;
+    stageClearReadyTimer = 0;
+    player.x = 400;
+    player.y = 520;
     letters = [];
     bullets = [];
     particles = [];
     floatingTexts = [];
-    player.x = 400;
-    player.y = 525;
     gameState = STATE.PLAYING;
   }
 
-  // --- Particle & Floating Score Effects ---
+  // --- Visual Effects ---
   function spawnExplosion(x, y, color, count = 16) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 45 + Math.random() * 145;
+      const speed = 40 + Math.random() * 140;
       particles.push({
         x: x,
         y: y,
@@ -569,84 +571,70 @@ window.onload = function () {
     });
   }
 
-  // --- Smart Letter Spawning Logic ---
+  // --- Letter Spawning ---
   let letterSpawnTimer = 0;
   function spawnLetter() {
     const currentWord = STAGES[currentStageIndex].word;
     const neededChar = currentWord[currentWordProgress];
 
-    // Guarantee target letter if 2 distractors spawned in a row
     let charToSpawn = '';
     if (nonTargetStreak >= 2 || Math.random() < 0.62) {
       charToSpawn = neededChar;
       nonTargetStreak = 0;
     } else {
       const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      do {
-        charToSpawn = alphabet[Math.floor(Math.random() * alphabet.length)];
-      } while (charToSpawn === neededChar);
-      nonTargetStreak++;
-    }
-
-    // Pick horizontal position avoiding existing letters near the top
-    let spawnX = 65 + Math.random() * 670;
-    for (let attempt = 0; attempt < 6; attempt++) {
-      const candidateX = 65 + Math.random() * 670;
-      const tooClose = letters.some((l) => l.y < 110 && Math.abs(l.x - candidateX) < 58);
-      if (!tooClose) {
-        spawnX = candidateX;
-        break;
+      charToSpawn = alphabet[Math.floor(Math.random() * alphabet.length)];
+      if (charToSpawn === neededChar) {
+        nonTargetStreak = 0;
+      } else {
+        nonTargetStreak++;
       }
     }
 
-    const fallSpeed = 95 + (currentStageIndex * 14) + (Math.random() * 28);
+    let spawnX = 60 + Math.random() * 680;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const tooClose = letters.some(l => l.y < 140 && Math.abs(l.x - spawnX) < 55);
+      if (!tooClose) break;
+      spawnX = 60 + Math.random() * 680;
+    }
+
+    const fallSpeed = 90 + (currentStageIndex * 14) + (Math.random() * 25);
     letters.push({
       char: charToSpawn,
       x: spawnX,
-      y: 95,
+      y: 80,
       radius: 21,
       speed: fallSpeed,
       isTarget: (charToSpawn === neededChar)
     });
   }
 
-  // --- Collision Handling ---
+  // --- Collision & Scoring ---
   function checkCollectLetter(letter, index) {
     const currentWord = STAGES[currentStageIndex].word;
     const neededChar = currentWord[currentWordProgress];
 
     if (letter.char === neededChar) {
-      // Correct letter collected!
+      Sound.catchCorrect();
       currentWordProgress++;
       combo++;
-      if (combo > maxCombo) maxCombo = combo;
-      Sound.catchCorrect(combo);
-
       const feverMultiplier = combo >= 3 ? 2 : 1;
-      const earned = 200 * feverMultiplier;
-      score += earned;
+      const pointsEarned = 200 * feverMultiplier;
+      score += pointsEarned;
 
       spawnExplosion(letter.x, letter.y, '#38ef7d', 20);
       spawnFloatingText(
         letter.x,
         letter.y - 10,
-        feverMultiplier > 1 ? `+${earned} FEVER!` : `+${earned}`,
+        feverMultiplier > 1 ? `+${pointsEarned} FEVER!` : `+${pointsEarned}`,
         '#38ef7d'
       );
       screenShake = 6;
 
-      // Refresh target status of remaining falling letters
-      const nextNeeded = currentWord[currentWordProgress];
-      letters.forEach((item) => {
-        item.isTarget = (item.char === nextNeeded);
-      });
-
-      // Check if word is complete
       if (currentWordProgress >= currentWord.length) {
         onWordCompleted();
       }
     } else {
-      // Wrong letter collected
       Sound.catchWrong();
       combo = 0;
       score = Math.max(0, score - 80);
@@ -654,42 +642,37 @@ window.onload = function () {
       spawnFloatingText(letter.x, letter.y - 10, '-80', '#ff4757');
       screenShake = 11;
     }
-
-    if (index < letters.length) {
-      letters.splice(index, 1);
-    }
+    letters.splice(index, 1);
   }
 
   function onWordCompleted() {
-    score += 1000 + Math.round(timeLeft * 10);
-    timeLeft = Math.min(99, timeLeft + 5); // +5 seconds bonus
-    spawnExplosion(400, 300, STAGES[currentStageIndex].color, 55);
+    Sound.wordComplete();
+    score += 1000 + Math.floor(timeLeft * 10);
+    timeLeft = Math.min(99, timeLeft + 5);
+    spawnExplosion(400, 300, STAGES[currentStageIndex].color, 50);
 
     if (currentStageIndex + 1 < STAGES.length) {
-      Sound.wordComplete();
       gameState = STATE.WORD_CLEAR;
-      stageClearGuardTimer = 0.35;
+      stageClearReadyTimer = 0.35;
+      letters = [];
+      bullets = [];
     } else {
-      Sound.gameWin();
       gameState = STATE.GAME_WIN;
     }
   }
 
   // --- Main Update Loop ---
   function update(dt) {
-    if (shootCooldown > 0) shootCooldown -= dt;
-    if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 28);
+    if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 25);
 
-    // Scroll starfield
-    stars.forEach((star) => {
-      star.y += star.speed * dt;
+    stars.forEach(star => {
+      star.y += star.speed;
       if (star.y > 600) {
         star.y = 0;
         star.x = Math.random() * 800;
       }
     });
 
-    // Update explosion particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.x += p.vx * dt;
@@ -698,25 +681,22 @@ window.onload = function () {
       if (p.life <= 0) particles.splice(i, 1);
     }
 
-    // Update floating score texts
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
       const ft = floatingTexts[i];
       ft.y -= 42 * dt;
-      ft.life -= 1.15 * dt;
+      ft.life -= 1.2 * dt;
       if (ft.life <= 0) floatingTexts.splice(i, 1);
     }
 
-    // Pause gameplay & timer during Stage Clear celebration until student taps Next Stage
     if (gameState === STATE.WORD_CLEAR) {
-      if (stageClearGuardTimer > 0) {
-        stageClearGuardTimer -= dt;
+      if (stageClearReadyTimer > 0) {
+        stageClearReadyTimer = Math.max(0, stageClearReadyTimer - dt);
       }
       return;
     }
 
     if (gameState !== STATE.PLAYING) return;
 
-    // Countdown timer
     timeLeft -= dt;
     if (timeLeft <= 0) {
       timeLeft = 0;
@@ -725,25 +705,24 @@ window.onload = function () {
       return;
     }
 
-    // 4-Way Ship Movement (Keyboard + Right-hand D-pad)
+    // 4-Way Movement
     let moveX = 0;
     let moveY = 0;
-    if (keys['ArrowLeft'] || keys['KeyA'] || touchControls.left) moveX -= 1;
-    if (keys['ArrowRight'] || keys['KeyD'] || touchControls.right) moveX += 1;
-    if (keys['ArrowUp'] || keys['KeyW'] || touchControls.forward) moveY -= 1;
-    if (keys['ArrowDown'] || keys['KeyS'] || touchControls.backward) moveY += 1;
+    if (keys['ArrowLeft'] || keys['KeyA'] || touchState.left) moveX -= 1;
+    if (keys['ArrowRight'] || keys['KeyD'] || touchState.right) moveX += 1;
+    if (keys['ArrowUp'] || keys['KeyW'] || touchState.up) moveY -= 1;
+    if (keys['ArrowDown'] || keys['KeyS'] || touchState.down) moveY += 1;
 
-    if (moveX !== 0 || moveY !== 0) {
-      const len = Math.hypot(moveX, moveY);
-      player.x += (moveX / len) * player.speed * dt;
-      player.y += (moveY / len) * player.speed * dt;
+    if (moveX !== 0 && moveY !== 0) {
+      const diag = Math.SQRT1_2;
+      moveX *= diag;
+      moveY *= diag;
     }
 
-    // Keep ship inside safe arena bounds
-    player.x = Math.max(36, Math.min(800 - 36, player.x));
-    player.y = Math.max(player.minY, Math.min(player.maxY, player.y));
+    player.x = Math.max(bounds.minX, Math.min(bounds.maxX, player.x + moveX * player.speed * dt));
+    player.y = Math.max(bounds.minY, Math.min(bounds.maxY, player.y + moveY * player.speed * dt));
 
-    // Update laser pulses
+    // Update Bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
       b.y -= b.speed * dt;
@@ -763,21 +742,23 @@ window.onload = function () {
       }
     }
 
-    // Spawn falling letters
+    // Spawn Falling Letters
     letterSpawnTimer += dt;
-    const spawnRate = Math.max(0.62, 1.18 - (currentStageIndex * 0.11));
+    const spawnRate = Math.max(0.65, 1.18 - (currentStageIndex * 0.11));
     if (letterSpawnTimer > spawnRate) {
       letterSpawnTimer = 0;
       spawnLetter();
     }
 
-    // Update falling letters & direct ship collision
+    // Update Letters & Player Collision
+    const neededChar = STAGES[currentStageIndex].word[currentWordProgress];
     for (let i = letters.length - 1; i >= 0; i--) {
       const l = letters[i];
       l.y += l.speed * dt;
+      l.isTarget = (l.char === neededChar);
 
       const distToPlayer = Math.hypot(player.x - l.x, player.y - l.y);
-      if (distToPlayer < l.radius + 24) {
+      if (distToPlayer < l.radius + 22) {
         checkCollectLetter(l, i);
         continue;
       }
@@ -788,126 +769,196 @@ window.onload = function () {
     }
   }
 
-  // --- Rendering Functions ---
-  function drawRoundedBox(x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-  }
-
+  // --- Draw Triangular Pixel Starfighter ---
   function drawPlayerShip() {
     ctx.save();
     ctx.translate(player.x, player.y);
 
-    // Twin animated thruster flames
-    const flameFlicker = 10 + Math.random() * 9;
+    // Twin Engine Thruster Flames
+    const flameLen = 14 + Math.random() * 10;
     ctx.fillStyle = Math.random() < 0.5 ? '#ff4757' : '#ffa502';
-
-    // Left engine flame
+    // Left thruster
     ctx.beginPath();
-    ctx.moveTo(-16, 16);
-    ctx.lineTo(-10, 16 + flameFlicker);
-    ctx.lineTo(-4, 16);
+    ctx.moveTo(-14, 16);
+    ctx.lineTo(-8, 16 + flameLen);
+    ctx.lineTo(-3, 16);
+    ctx.closePath();
+    ctx.fill();
+    // Right thruster
+    ctx.beginPath();
+    ctx.moveTo(3, 16);
+    ctx.lineTo(8, 16 + flameLen);
+    ctx.lineTo(14, 16);
     ctx.closePath();
     ctx.fill();
 
-    // Right engine flame
-    ctx.beginPath();
-    ctx.moveTo(4, 16);
-    ctx.lineTo(10, 16 + flameFlicker);
-    ctx.lineTo(16, 16);
-    ctx.closePath();
-    ctx.fill();
+    // Outer Wingtip Laser Pods
+    ctx.fillStyle = '#ff4757';
+    ctx.fillRect(-28, 4, 4, 12);
+    ctx.fillRect(24, 4, 4, 12);
 
-    // Wingtip laser pods
-    ctx.fillStyle = '#38ef7d';
-    ctx.fillRect(-27, 4, 4, 12);
-    ctx.fillRect(23, 4, 4, 12);
-
-    // Main triangular delta-wing starfighter hull
+    // Main Triangular Delta-Wing Hull
     ctx.fillStyle = '#1e90ff';
     ctx.beginPath();
-    ctx.moveTo(0, -24);      // Sharp nose tip
-    ctx.lineTo(28, 16);      // Right delta wingtip
-    ctx.lineTo(12, 12);      // Right inner notch
-    ctx.lineTo(0, 18);       // Rear tail center
-    ctx.lineTo(-12, 12);     // Left inner notch
-    ctx.lineTo(-28, 16);     // Left delta wingtip
+    ctx.moveTo(0, -26);
+    ctx.lineTo(28, 16);
+    ctx.lineTo(12, 12);
+    ctx.lineTo(0, 17);
+    ctx.lineTo(-12, 12);
+    ctx.lineTo(-28, 16);
     ctx.closePath();
     ctx.fill();
 
-    // Neon cyan outer hull border
+    // Hull Neon Outline
     ctx.strokeStyle = '#70a1ff';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Inner fuselage stripe accents
-    ctx.strokeStyle = '#00d2ff';
-    ctx.lineWidth = 1.5;
+    // Inner Triangular Armor Plate
+    ctx.fillStyle = '#3742fa';
     ctx.beginPath();
     ctx.moveTo(0, -16);
-    ctx.lineTo(15, 11);
-    ctx.moveTo(0, -16);
-    ctx.lineTo(-15, 11);
-    ctx.stroke();
+    ctx.lineTo(14, 10);
+    ctx.lineTo(0, 6);
+    ctx.lineTo(-14, 10);
+    ctx.closePath();
+    ctx.fill();
 
-    // Triangular armored cockpit canopy
-    ctx.fillStyle = '#00f2fe';
+    // Pointed Cockpit Canopy
+    ctx.fillStyle = '#00ffff';
     ctx.beginPath();
     ctx.moveTo(0, -11);
-    ctx.lineTo(6, 4);
-    ctx.lineTo(-6, 4);
+    ctx.lineTo(5, 2);
+    ctx.lineTo(0, 5);
+    ctx.lineTo(-5, 2);
     ctx.closePath();
     ctx.fill();
 
     ctx.restore();
   }
 
+  // --- Rendering ---
+  function draw() {
+    ctx.save();
+    if (screenShake > 0) {
+      const shakeX = (Math.random() - 0.5) * screenShake;
+      const shakeY = (Math.random() - 0.5) * screenShake;
+      ctx.translate(shakeX, shakeY);
+    }
+
+    // 1. Background & Starfield
+    ctx.fillStyle = '#060613';
+    ctx.fillRect(0, 0, 800, 600);
+
+    ctx.fillStyle = '#ffffff';
+    stars.forEach(star => {
+      ctx.globalAlpha = star.speed > 1.2 ? 0.9 : 0.4;
+      ctx.fillRect(star.x, star.y, star.size, star.size);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // 2. Particles
+    particles.forEach(p => {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // 3. Laser Bolts
+    ctx.fillStyle = '#00ffff';
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 8;
+    bullets.forEach(b => {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+
+    // 4. Falling Letters
+    letters.forEach(l => {
+      ctx.save();
+      ctx.translate(l.x, l.y);
+
+      ctx.fillStyle = 'rgba(16, 24, 48, 0.9)';
+      ctx.beginPath();
+      ctx.arc(0, 0, l.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = l.isTarget ? '#38ef7d' : '#4a69bd';
+      if (l.isTarget) {
+        ctx.shadowColor = '#38ef7d';
+        ctx.shadowBlur = 10;
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 21px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(l.char, 0, 1);
+      ctx.restore();
+    });
+
+    // 5. Player Triangular Starfighter
+    drawPlayerShip();
+
+    // 6. Floating Score Popups
+    floatingTexts.forEach(ft => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, ft.life);
+      ctx.fillStyle = ft.color;
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    });
+
+    // 7. Top HUD
+    drawHUD();
+
+    // 8. State Overlays
+    if (gameState === STATE.START) drawStartScreen();
+    if (gameState === STATE.WORD_CLEAR) drawWordClearScreen();
+    if (gameState === STATE.GAME_OVER) drawGameOverScreen();
+    if (gameState === STATE.GAME_WIN) drawGameWinScreen();
+
+    ctx.restore();
+  }
+
   function drawHUD() {
     const stage = STAGES[currentStageIndex];
-    ctx.fillStyle = 'rgba(5, 8, 22, 0.9)';
+    ctx.fillStyle = 'rgba(5, 5, 20, 0.92)';
     ctx.fillRect(0, 0, 800, 96);
-    ctx.strokeStyle = '#2f3640';
+    ctx.strokeStyle = '#1e272e';
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, 800, 96);
 
-    // Score
-    ctx.font = 'bold 18px "Courier New", monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = '#ffd32a';
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
     ctx.fillText(`SCORE: ${score}`, 22, 30);
 
-    // Timer
     ctx.fillStyle = timeLeft < 20 ? '#ff3838' : '#00d2d3';
     ctx.textAlign = 'right';
     ctx.fillText(`TIME: ${Math.ceil(timeLeft)}s`, 778, 30);
 
-    // Combo indicator
     if (combo >= 3) {
       ctx.fillStyle = '#ff4757';
-      ctx.font = 'italic bold 15px "Courier New", monospace';
+      ctx.font = 'italic bold 15px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`★ FEVER x2 (${combo} HIT) ★`, 22, 56);
+      ctx.fillText(`★ FEVER x2 (${combo}) ★`, 22, 56);
     }
 
-    // Stage number & English core value description
     ctx.fillStyle = stage.color;
-    ctx.font = 'bold 15px "Courier New", monospace';
+    ctx.font = 'bold 15px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(`STAGE ${currentStageIndex + 1}/5: ${stage.desc}`, 400, 26);
 
-    // Letter slots
     const word = stage.word;
-    const boxSize = 33;
+    const boxSize = 34;
     const spacing = 8;
     const totalW = (word.length * boxSize) + ((word.length - 1) * spacing);
     const startX = 400 - (totalW / 2);
@@ -926,284 +977,150 @@ window.onload = function () {
       ctx.strokeRect(bx, by, boxSize, boxSize);
 
       if (isFilled) {
-        ctx.fillStyle = '#051008';
-        ctx.font = 'bold 21px "Courier New", monospace';
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 22px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(word[i], bx + boxSize / 2, by + boxSize / 2 + 1);
       } else if (isCurrentTarget) {
-        ctx.fillStyle = Math.sin(Date.now() / 160) > 0 ? '#ffd32a' : '#a4b0be';
-        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.fillStyle = Math.sin(Date.now() / 150) > 0 ? '#ffd32a' : '#ffffff';
+        ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(word[i], bx + boxSize / 2, by + boxSize / 2 + 1);
+        ctx.fillText('?', bx + boxSize / 2, by + boxSize / 2);
       }
     }
   }
 
   function drawStartScreen() {
-    ctx.fillStyle = 'rgba(4, 6, 18, 0.90)';
+    ctx.fillStyle = 'rgba(4, 6, 18, 0.9)';
     ctx.fillRect(0, 0, 800, 600);
 
-    // Decorative outer frame
     ctx.strokeStyle = '#38ef7d';
     ctx.lineWidth = 3;
-    ctx.strokeRect(42, 48, 716, 504);
+    ctx.strokeRect(60, 75, 680, 450);
 
-    // Welcome Banner
     ctx.fillStyle = '#ffd32a';
-    ctx.font = 'bold 26px "Courier New", monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('★ WELCOME TO CCASS ★', 400, 120);
+    ctx.fillText('WELCOME TO CCASS', 400, 145);
 
-    // Game Title
     ctx.fillStyle = '#00ffff';
-    ctx.font = 'bold 38px "Courier New", monospace';
-    ctx.fillText('CCASS WORD QUEST', 400, 178);
+    ctx.font = 'bold 38px monospace';
+    ctx.fillText('WORD QUEST', 400, 200);
 
     ctx.fillStyle = '#38ef7d';
-    ctx.font = 'bold 20px "Courier New", monospace';
-    ctx.fillText('PIXEL GUARDIAN: CORE VALUES EDITION', 400, 216);
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('MASTER THE 5 CORE VALUES OF CCASS', 400, 242);
 
-    // Mission briefing
-    ctx.fillStyle = '#e0f7ff';
-    ctx.font = '16px "Courier New", monospace';
-    ctx.fillText('Pilot your starfighter and collect the letters in order', 400, 274);
-    ctx.fillText('to unlock all 5 CCASS Core Values!', 400, 300);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '15px monospace';
+    ctx.fillText('Catch or shoot the falling letters in order to spell each value:', 400, 298);
 
-    // 5 Core Values badge row
-    ctx.fillStyle = '#a55eea';
-    ctx.font = 'bold 15px "Courier New", monospace';
-    ctx.fillText('CARE • COMMITMENT • APPRECIATION • SUPPORT • SUCCESS', 400, 352);
+    ctx.fillStyle = '#a4b0be';
+    ctx.font = 'bold 15px monospace';
+    ctx.fillText('CARE • COMMITMENT • APPRECIATION • SUPPORT • SUCCESS', 400, 332);
 
-    // Blinking "PRESS TO START" button box
-    const isBlinkOn = Math.sin(Date.now() / 220) > -0.2;
-    ctx.fillStyle = isBlinkOn ? 'rgba(56, 239, 125, 0.2)' : 'rgba(56, 239, 125, 0.06)';
-    ctx.fillRect(210, 415, 380, 58);
-    ctx.strokeStyle = '#38ef7d';
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(210, 415, 380, 58);
+    const pulse = Math.sin(Date.now() / 220) > 0;
+    ctx.fillStyle = pulse ? '#38ef7d' : '#1e824c';
+    ctx.fillRect(230, 395, 340, 62);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(230, 395, 340, 62);
 
-    ctx.fillStyle = isBlinkOn ? '#ffd32a' : '#ffffff';
-    ctx.font = 'bold 24px "Courier New", monospace';
-    ctx.fillText('▶ PRESS TO START ◀', 400, 452);
-
-    ctx.fillStyle = '#88ccff';
-    ctx.font = '13px "Courier New", monospace';
-    ctx.fillText('Tap Screen or Press FIRE to Launch', 400, 512);
+    ctx.fillStyle = '#050510';
+    ctx.font = 'bold 24px monospace';
+    ctx.fillText('▶ PRESS TO START ◀', 400, 434);
   }
 
   function drawWordClearScreen() {
     const stage = STAGES[currentStageIndex];
-    ctx.fillStyle = 'rgba(4, 8, 22, 0.90)';
-    ctx.fillRect(65, 145, 670, 305);
+    ctx.fillStyle = 'rgba(4, 6, 18, 0.88)';
+    ctx.fillRect(0, 96, 800, 504);
+
     ctx.strokeStyle = stage.color;
     ctx.lineWidth = 3;
-    ctx.strokeRect(65, 145, 670, 305);
+    ctx.strokeRect(95, 145, 610, 320);
 
     ctx.fillStyle = '#ffd32a';
-    ctx.font = 'bold 34px "Courier New", monospace';
+    ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('★ STAGE CLEAR! ★', 400, 202);
+    ctx.fillText('★ STAGE CLEAR! ★', 400, 205);
 
     ctx.fillStyle = stage.color;
-    ctx.font = 'bold 23px "Courier New", monospace';
-    ctx.fillText(`${stage.word} - ${stage.desc}`, 400, 255);
+    ctx.font = 'bold 28px monospace';
+    ctx.fillText(`${stage.word} - ${stage.desc}`, 400, 260);
 
     ctx.fillStyle = '#2ed573';
-    ctx.font = 'bold 19px "Courier New", monospace';
-    ctx.fillText('+5 SECONDS BONUS!', 400, 302);
+    ctx.font = 'bold 19px monospace';
+    ctx.fillText('+5 SECONDS BONUS ADDED!', 400, 305);
 
-    // Interactive "PRESS TO THE NEXT STAGE" arcade button
-    const btnX = 185;
-    const btnY = 335;
-    const btnW = 430;
-    const btnH = 56;
-    const isPulseOn = Math.sin(Date.now() / 220) > 0;
-
-    // Button drop shadow
-    ctx.fillStyle = '#146c38';
-    drawRoundedBox(btnX, btnY + 5, btnW, btnH, 12);
-    ctx.fill();
-
-    // Button body
-    ctx.fillStyle = isPulseOn ? '#2ed573' : '#26ba63';
-    drawRoundedBox(btnX, btnY, btnW, btnH, 12);
-    ctx.fill();
-
-    ctx.strokeStyle = '#d8ffe8';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Button label
-    ctx.fillStyle = '#04140a';
-    ctx.font = 'bold 20px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('▶ PRESS TO THE NEXT STAGE ◀', 400, btnY + btnH / 2 + 1);
-
-    // Helper hint
     ctx.fillStyle = '#a4b0be';
-    ctx.font = '13px "Courier New", monospace';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('Tap the button or press FIRE to continue', 400, 425);
+    ctx.font = '15px monospace';
+    ctx.fillText(`Next Up: Stage ${currentStageIndex + 2} of 5`, 400, 340);
+
+    // Interactive "PRESS TO THE NEXT STAGE" Button
+    const pulse = Math.sin(Date.now() / 220) > 0;
+    ctx.fillStyle = pulse ? '#38ef7d' : '#26a65b';
+    ctx.fillRect(nextStageBtn.x, nextStageBtn.y, nextStageBtn.w, nextStageBtn.h);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(nextStageBtn.x, nextStageBtn.y, nextStageBtn.w, nextStageBtn.h);
+
+    ctx.fillStyle = '#050510';
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText('▶ PRESS TO THE NEXT STAGE ◀', 400, nextStageBtn.y + 36);
   }
 
   function drawGameOverScreen() {
-    ctx.fillStyle = 'rgba(20, 4, 8, 0.90)';
+    ctx.fillStyle = 'rgba(20, 0, 0, 0.9)';
     ctx.fillRect(0, 0, 800, 600);
 
     ctx.fillStyle = '#ff4757';
-    ctx.font = 'bold 44px "Courier New", monospace';
+    ctx.font = 'bold 46px monospace';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('TIME UP!', 400, 210);
+    ctx.fillText('TIME IS UP!', 400, 220);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px "Courier New", monospace';
-    ctx.fillText(`FINAL SCORE: ${score}`, 400, 280);
-
-    ctx.fillStyle = '#88ccff';
-    ctx.font = '18px "Courier New", monospace';
-    ctx.fillText(`STAGE REACHED: ${currentStageIndex + 1} / 5`, 400, 325);
+    ctx.font = '24px monospace';
+    ctx.fillText(`FINAL SCORE: ${score}`, 400, 290);
 
     ctx.fillStyle = '#ffd32a';
-    ctx.font = 'bold 22px "Courier New", monospace';
-    if (Math.sin(Date.now() / 220) > -0.2) {
-      ctx.fillText('▶ TAP SCREEN OR PRESS FIRE TO PLAY AGAIN ◀', 400, 420);
+    ctx.font = 'bold 22px monospace';
+    if (Math.sin(Date.now() / 220) > 0) {
+      ctx.fillText('▶ TAP SCREEN OR PRESS FIRE TO TRY AGAIN ◀', 400, 390);
     }
   }
 
   function drawGameWinScreen() {
-    ctx.fillStyle = 'rgba(5, 22, 12, 0.92)';
+    ctx.fillStyle = 'rgba(5, 20, 12, 0.92)';
     ctx.fillRect(0, 0, 800, 600);
 
-    ctx.strokeStyle = '#ffd32a';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(48, 56, 704, 488);
-
     ctx.fillStyle = '#ffd32a';
-    ctx.font = 'bold 36px "Courier New", monospace';
+    ctx.font = 'bold 38px monospace';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('★ ALL CCASS VALUES UNLOCKED! ★', 400, 150);
+    ctx.fillText('★ ALL CCASS VALUES UNLOCKED! ★', 400, 175);
 
     ctx.fillStyle = '#38ef7d';
-    ctx.font = 'bold 21px "Courier New", monospace';
-    ctx.fillText('Congratulations! You mastered all 5 Core Values!', 400, 208);
+    ctx.font = 'bold 22px monospace';
+    ctx.fillText('CONGRATULATIONS, PIXEL GUARDIAN!', 400, 235);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 26px "Courier New", monospace';
-    ctx.fillText(`HERO SCORE: ${score}`, 400, 275);
+    ctx.font = '22px monospace';
+    ctx.fillText(`FINAL HERO SCORE: ${score}`, 400, 305);
 
-    ctx.fillStyle = '#00ffff';
-    ctx.font = '18px "Courier New", monospace';
-    ctx.fillText(`MAX COMBO: ${maxCombo} HIT`, 400, 315);
-
-    ctx.fillStyle = '#ffd32a';
-    ctx.font = 'bold 17px "Courier New", monospace';
-    ctx.fillText('Show this screen at the booth to claim your CCASS prize!', 400, 375);
+    ctx.font = '18px monospace';
+    ctx.fillStyle = '#70a1ff';
+    ctx.fillText('Please visit the booth counter to claim your CCASS Prize!', 400, 355);
 
     ctx.fillStyle = '#00d2d3';
-    ctx.font = 'bold 20px "Courier New", monospace';
-    if (Math.sin(Date.now() / 220) > -0.2) {
-      ctx.fillText('▶ TAP SCREEN OR PRESS FIRE TO PLAY AGAIN ◀', 400, 460);
+    ctx.font = 'bold 20px monospace';
+    if (Math.sin(Date.now() / 220) > 0) {
+      ctx.fillText('▶ TAP SCREEN OR PRESS FIRE TO PLAY AGAIN ◀', 400, 445);
     }
   }
 
-  function draw() {
-    ctx.save();
-    if (screenShake > 0) {
-      const shakeX = (Math.random() - 0.5) * screenShake;
-      const shakeY = (Math.random() - 0.5) * screenShake;
-      ctx.translate(shakeX, shakeY);
-    }
-
-    // 1. Background & starfield
-    ctx.fillStyle = '#060613';
-    ctx.fillRect(0, 0, 800, 600);
-
-    ctx.fillStyle = '#ffffff';
-    stars.forEach((star) => {
-      ctx.globalAlpha = star.speed > 65 ? 0.9 : 0.45;
-      ctx.fillRect(star.x, star.y, star.size, star.size);
-    });
-    ctx.globalAlpha = 1.0;
-
-    // 2. Explosion particles
-    particles.forEach((p) => {
-      ctx.globalAlpha = Math.max(0, p.life);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
-    });
-    ctx.globalAlpha = 1.0;
-
-    // 3. Laser pulses
-    ctx.fillStyle = '#00ffff';
-    ctx.shadowColor = '#00ffff';
-    ctx.shadowBlur = 8;
-    bullets.forEach((b) => {
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.shadowBlur = 0;
-
-    // 4. Falling letter orbs
-    letters.forEach((l) => {
-      ctx.save();
-      ctx.translate(l.x, l.y);
-
-      ctx.fillStyle = 'rgba(16, 24, 48, 0.88)';
-      ctx.beginPath();
-      ctx.arc(0, 0, l.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = l.isTarget ? '#38ef7d' : '#4a69bd';
-      if (l.isTarget) {
-        ctx.shadowColor = '#38ef7d';
-        ctx.shadowBlur = 10;
-      }
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 21px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(l.char, 0, 1);
-      ctx.restore();
-    });
-
-    // 5. Triangular Player Starfighter
-    drawPlayerShip();
-
-    // 6. Floating score popups
-    floatingTexts.forEach((ft) => {
-      ctx.globalAlpha = Math.max(0, ft.life);
-      ctx.fillStyle = ft.color;
-      ctx.font = 'bold 16px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(ft.text, ft.x, ft.y);
-    });
-    ctx.globalAlpha = 1.0;
-
-    // 7. Top HUD
-    drawHUD();
-
-    // 8. State Overlays
-    if (gameState === STATE.START) drawStartScreen();
-    if (gameState === STATE.WORD_CLEAR) drawWordClearScreen();
-    if (gameState === STATE.GAME_OVER) drawGameOverScreen();
-    if (gameState === STATE.GAME_WIN) drawGameWinScreen();
-
-    ctx.restore();
-  }
-
-  // --- Main Animation Loop ---
+  // --- Main Loop ---
   function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
@@ -1216,7 +1133,7 @@ window.onload = function () {
   }
 
   requestAnimationFrame(gameLoop);
-};
+})();
 </script>
 </body>
 </html>
